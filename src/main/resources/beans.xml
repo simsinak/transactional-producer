@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int-kafka="http://www.springframework.org/schema/integration/kafka"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                            http://www.springframework.org/schema/integration/kafka http://www.springframework.org/schema/integration/spring-kafka.xsd
+                            http://www.springframework.org/schema/integration  http://www.springframework.org/schema/integration/spring-integration.xsd">
+
+    <int-kafka:message-driven-channel-adapter
+            listener-container="listenerContainer"
+            auto-startup="true"
+            send-timeout="5000"
+            channel="requestChannel"/>
+
+    <bean name="listenerContainer" class="org.springframework.kafka.listener.KafkaMessageListenerContainer">
+        <constructor-arg name="consumerFactory">
+            <bean class="org.springframework.kafka.core.DefaultKafkaConsumerFactory">
+                <constructor-arg name="configs">
+                    <map>
+                        <entry key="bootstrap.servers" value="localhost:9092"/>
+                        <entry key="key.deserializer" value="org.apache.kafka.common.serialization.StringDeserializer"/>
+                        <entry key="value.deserializer" value="org.apache.kafka.common.serialization.StringDeserializer"/>
+                        <entry key="auto.offset.reset" value="earliest"/>
+                        <entry key="group.id" value="test-group"/>
+                        <entry key="security.protocol" value="PLAINTEXT"/>
+                    </map>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg name="containerProperties">
+            <bean class="org.springframework.kafka.listener.ContainerProperties">
+                <constructor-arg name="topics" value="input"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+
+    <int:channel id="requestChannel"/>
+    
+    <int-kafka:outbound-channel-adapter kafka-template="kafkaTemplate"
+                                        auto-startup="true"
+                                        channel="requestChannel"
+                                        topic="output"/>
+
+    <bean name="kafkaTemplate" class="org.springframework.kafka.core.KafkaTemplate">
+        <constructor-arg name="producerFactory">
+            <bean class="org.springframework.kafka.core.DefaultKafkaProducerFactory">
+                <constructor-arg name="configs">
+                    <map>
+                        <entry key="bootstrap.servers" value="localhost:9092"/>
+                        <entry key="value.serializer" value="org.apache.kafka.common.serialization.StringSerializer"/>
+                        <entry key="key.serializer" value="org.apache.kafka.common.serialization.StringSerializer"/>
+                        <entry key="security.protocol" value="PLAINTEXT"/>
+                    </map>
+                </constructor-arg>
+                <property name="transactionIdPrefix" value="trx-"/>
+                <property name="producerPerConsumerPartition" value="false"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+
+</beans>
